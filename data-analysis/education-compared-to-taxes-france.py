@@ -125,5 +125,5 @@ plt.scatter(df_final['Impôt par foyer'], df_final['Taux Brut de Réussite Total
 plt.axis([-1000, df_final['Impôt par foyer'].max()*1.05, df_final['Taux Brut de Réussite Total séries'].min()-5, 105])
 plt.ylabel('Taux de réussite')
 plt.xlabel('Impôts moyens par foyer')
-plt.title = 'Taux de réussite moyen au lycée en fonction des impôts par foyer, par commune de France en 2016'
+plt.title('Taux de réussite moyen au lycée en fonction des impôts par foyer, par commune de France en 2016')
 plt.show()
