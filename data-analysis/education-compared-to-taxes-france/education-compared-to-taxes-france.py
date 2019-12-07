@@ -13,7 +13,8 @@ file_grades = 'fr-en-indicateurs-de-resultat-des-lycees-denseignement-general-et
 # https://www.data.gouv.fr/fr/datasets/l-impot-sur-le-revenu-par-collectivite-territoriale/
 file_taxes = 'ircom_2017_revenus_2016.xlsx'
 # Directory where both files are located. Let it empty if it is in the current directory :
-filepath = '!!! PASTE THE FOLDER PATH HERE !!!'
+filepath = '!!! PASTE YOUR FOLDER PATH HERE !!!'
+
 
 if filepath != '' and filepath[-1] != '/':
     filepath += '/'
@@ -62,18 +63,20 @@ print('done!')
 
 
 columns_to_keep = ['Taux Brut de Réussite Total séries', 'Effectif Présents Total séries', 'Code commune']
+renamed_columns = ['success_rate', 'number_students', 'city_code']
 
 
 def moyenne_ponderee(group):
     """Weighted average"""
-    return pd.Series({'Taux Brut de Réussite Total séries': (group['Taux Brut de Réussite Total séries'].sum() /
-                                                             group['Effectif Présents Total séries'].sum())})
+    return pd.Series({'success_rate': (group.success_rate.sum() / group.number_students.sum()),
+                     'number_students': group.number_students.max()})
 
 
 df_grades = df_grades[df_grades['Année'] == 2016][columns_to_keep]
-df_grades['Taux Brut de Réussite Total séries'] = df_grades['Taux Brut de Réussite Total séries']\
-                                                  * df_grades['Effectif Présents Total séries']
-df_grades = df_grades.groupby('Code commune').apply(moyenne_ponderee)
+df_grades.columns = renamed_columns
+df_grades['success_rate'] = df_grades.success_rate * df_grades.number_students
+df_grades = df_grades.groupby('city_code').apply(moyenne_ponderee)
+df_grades['size_ratio'] = df_grades.number_students*100 / df_grades.number_students.sum()
 
 ##########
 # Cleaning the taxes file
@@ -103,25 +106,23 @@ def get_commune_code(c):
 
 df_taxes = pd.concat(df_taxes, sort=False)
 df_taxes = df_taxes[df_taxes.iloc[:, 4] == 'Total'].iloc[:, [1, 2, 3, 4, 5, 7]]
-df_taxes['Code commune'] = df_taxes.iloc[:, 0].map(get_dpt_code)+df_taxes.iloc[:, 1].map(get_commune_code)
+df_taxes['city_code'] = df_taxes.iloc[:, 0].map(get_dpt_code)+df_taxes.iloc[:, 1].map(get_commune_code)
 df_taxes = df_taxes.iloc[:, [4, 5, 6]]
-df_taxes.columns = ['Nombre de foyers fiscaux', 'Impôts totaux', 'Code commune']
-df_taxes['Impôts totaux'] = pd.to_numeric(df_taxes['Impôts totaux'], errors='coerce')
-df_taxes = df_taxes[df_taxes['Impôts totaux'] > 0]
-df_taxes['Impôt par foyer'] = df_taxes['Impôts totaux']*1000 / df_taxes['Nombre de foyers fiscaux']
-df_taxes['Impôt par foyer'] = pd.to_numeric(df_taxes['Impôt par foyer'], errors='coerce')
-df_taxes = df_taxes[['Code commune', 'Impôt par foyer']]
+df_taxes.columns = ['homes', 'taxes', 'city_code']
+df_taxes['taxes'] = pd.to_numeric(df_taxes.taxes, errors='coerce')
+df_taxes['homes'] = pd.to_numeric(df_taxes.homes, errors='coerce')
 df_taxes = df_taxes.dropna()
+df_taxes = df_taxes[df_taxes.taxes > 0]
+df_taxes['taxes'] = df_taxes.taxes*1000 / df_taxes.homes
+df_taxes = df_taxes[['city_code', 'taxes']]
 
 ##########
 # Merging both Dataframes on the city codes column
 ##########
 
-df_final = pd.merge(df_grades, df_taxes, how="inner", on='Code commune')
-df_final = df_final.groupby('Code commune').mean()
-print(df_final)
-plt.scatter(df_final['Impôt par foyer'], df_final['Taux Brut de Réussite Total séries'])
-plt.axis([-1000, df_final['Impôt par foyer'].max()*1.05, df_final['Taux Brut de Réussite Total séries'].min()-5, 105])
+df_final = pd.merge(df_grades, df_taxes, how="inner", on='city_code')
+df_final = df_final.groupby('city_code').mean()
+plt.scatter(df_final.taxes, df_final.success_rate, df_final.size_ratio*500)
 plt.ylabel('Taux de réussite')
 plt.xlabel('Impôts moyens par foyer')
 plt.title('Taux de réussite moyen au lycée en fonction des impôts par foyer, par commune de France en 2016')
