@@ -15,9 +15,11 @@ file_taxes = 'ircom_2017_revenus_2016.xlsx'
 # Directory where both files are located. Let it empty if it is in the current directory :
 filepath = '!!! PASTE THE FOLDER PATH HERE !!!'
 
+if filepath != '' and filepath[-1] != '/':
+    filepath += '/'
 if not (os.path.exists(filepath) and os.path.exists(filepath+file_grades) and os.path.exists(filepath+file_taxes)):
-    print("\nPlease put both the files in the same directory, and set ""filepath""as this directory or let it empty if "
-          "the directory is the current one. Else, the datasets will be downloaded each time.\n"
+    print("\nPlease put both the files in the same directory, and set \"filepath\" as this directory or let it empty "
+          "if the directory is the current one. Else, the datasets will be downloaded each time.\n"
           "Dataset of grades to download here :\n"
           "https://www.data.gouv.fr/fr/datasets/indicateurs-de-resultat-des-lycees-denseignement-general-et"
           "-technologique-1/\nDataset of taxes to download here :\n"
@@ -74,11 +76,8 @@ df_grades['Taux Brut de Réussite Total séries'] = df_grades['Taux Brut de Réu
 df_grades = df_grades.groupby('Code commune').apply(moyenne_ponderee)
 
 ##########
-# Cleaning of the taxes file
+# Cleaning the taxes file
 ##########
-
-
-
 
 
 def get_dpt_code(c):
