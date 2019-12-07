@@ -114,15 +114,24 @@ df_taxes['homes'] = pd.to_numeric(df_taxes.homes, errors='coerce')
 df_taxes = df_taxes.dropna()
 df_taxes = df_taxes[df_taxes.taxes > 0]
 df_taxes['taxes'] = df_taxes.taxes*1000 / df_taxes.homes
-df_taxes = df_taxes[['city_code', 'taxes']]
+df_taxes = df_taxes[['city_code', 'taxes', 'homes']]
 
 ##########
 # Merging both Dataframes on the city codes column
 ##########
 
+
+def density_to_color(serie):
+    # colors = dict(zip(range(10), ['midnightblue', 'navy', 'mediumblue', 'slateblue', 'blueviolet', 'darkmagenta',
+    #                               'magenta', 'mediumvioletred', 'crimson', 'red']))
+    colors = dict(zip(range(6), ['midnightblue', 'mediumblue', 'skyblue', 'goldenrod', 'chocolate', 'red']))
+    return (serie*5.99/serie.max()).astype(int).map(colors)
+
+
 df_final = pd.merge(df_grades, df_taxes, how="inner", on='city_code')
 df_final = df_final.groupby('city_code').mean()
-plt.scatter(df_final.taxes, df_final.success_rate, df_final.size_ratio*500)
+df_final['color'] = density_to_color(df_final.number_students / df_final.homes)
+plt.scatter(df_final.taxes, df_final.success_rate, df_final.size_ratio*200, c=df_final.color)
 plt.ylabel('Taux de réussite')
 plt.xlabel('Impôts moyens par foyer')
 plt.title('Taux de réussite moyen au lycée en fonction des impôts par foyer, par commune de France en 2016')
